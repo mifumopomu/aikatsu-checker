@@ -51,10 +51,10 @@ main{max-width:1120px;margin:auto;padding:18px 16px 50px}
 .cardImg{aspect-ratio:59/86;border-radius:15px;overflow:hidden;background:linear-gradient(145deg,#fff1f7,#f7eaf5);display:grid;place-items:center}
 .cardImg img{width:100%;height:100%;object-fit:cover}.placeholder{color:#e5aec9;font-size:30px;font-weight:900}
 .cardMeta{padding:9px 4px 3px}.code{font-weight:900;font-size:17px;display:flex;align-items:center;gap:6px}.rarity{font-size:11px;background:#ec5c9e;color:#fff;border-radius:7px;padding:3px 6px}.cardName{font-size:13px;color:#76616e;min-height:38px;margin-top:4px}
-.qty{display:flex;align-items:center;justify-content:space-between;background:#fff3f8;border-radius:999px;padding:5px;margin-top:6px}.qty button{width:34px;height:34px;border:0;border-radius:50%;background:#fff;color:var(--pink);font-size:22px}.qty strong{font-size:18px}.cardBtns{display:grid;grid-template-columns:1fr auto;gap:5px;margin-top:6px}.trade{border:1px solid #60c2b9;color:var(--mint);background:#f5fffd;border-radius:999px;padding:6px;font-size:11px}.want{border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 10px;color:#6c5362}.want.on{color:var(--pink);border-color:#f0a3c6;background:#fff1f7}
+.qty{display:flex;align-items:center;justify-content:space-between;background:#fff3f8;border-radius:999px;padding:5px;margin-top:6px}.qty button{width:34px;height:34px;border:0;border-radius:50%;background:#fff;color:var(--pink);font-size:22px}.qty strong{font-size:18px}.cardBtns{display:grid;grid-template-columns:1fr auto;gap:5px;margin-top:6px}.tradeCtl{display:grid;grid-template-columns:30px 1fr 30px;align-items:center;border:1px solid #60c2b9;color:var(--mint);background:#f5fffd;border-radius:999px;overflow:hidden;font-size:11px}.tradeCtl button{border:0;background:transparent;color:var(--mint);font-size:18px;height:30px;padding:0}.tradeCtl strong{text-align:center;font-size:11px;font-weight:900}.tradeCtl button:active{background:#dff7f3}.want{border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 10px;color:#6c5362}.want.on{color:var(--pink);border-color:#f0a3c6;background:#fff1f7}
 .badge{position:absolute;right:16px;top:16px;background:#fff;border-radius:999px;padding:5px 8px;font-size:11px;box-shadow:0 2px 8px #0001}
 .empty{grid-column:1/-1;background:#fff;border:1px solid var(--line);border-radius:22px;padding:50px;text-align:center;color:#a18796}
-.coordin{background:#fff;border:1px solid var(--line);border-radius:25px;padding:20px;margin-bottom:14px;box-shadow:var(--shadow)}.coordHead{display:flex;justify-content:space-between;align-items:center}.coordHead h3{margin:0}.coordCount{color:#d14788;font-weight:900}.coordCards{display:grid;grid-template-columns:repeat(4,1fr);gap:15px;margin-top:14px}.mini{text-align:center}.miniImg{aspect-ratio:59/86;border-radius:13px;overflow:hidden;background:#faf0f5}.miniImg img{width:100%;height:100%;object-fit:cover;filter:grayscale(80%);opacity:.45}.miniImg.owned img{filter:none;opacity:1}.mini small{display:block;color:#8f7786;margin-top:5px}
+.coordin{background:#fff;border:1px solid var(--line);border-radius:25px;padding:20px;margin-bottom:14px;box-shadow:var(--shadow)}.coordHead{display:flex;justify-content:space-between;align-items:center}.coordHead h3{margin:0}.coordCount{color:#d14788;font-weight:900}.coordCards{display:grid;grid-template-columns:repeat(4,1fr);gap:15px;margin-top:14px}.mini{text-align:center;position:relative}.miniImg{min-height:90px;border-radius:13px;overflow:hidden;background:#faf0f5;display:flex;align-items:center;justify-content:center}.miniImg img{display:block;width:100%;height:auto;max-height:230px;object-fit:contain;filter:grayscale(80%);opacity:.45}.miniImg.owned img{filter:none;opacity:1}.miniRemove{margin-top:5px;border:1px solid var(--line);background:#fff;color:#a06f86;border-radius:999px;padding:4px 8px;font-size:10px}.miniImg.owned img{filter:none;opacity:1}.mini small{display:block;color:#8f7786;margin-top:5px}
 .history{background:#fff;border:1px solid var(--line);border-radius:22px;padding:20px}.historyItem{padding:13px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between}.historyItem:last-child{border-bottom:0}
 .modal{position:fixed;inset:0;background:#321e2e88;display:none;align-items:flex-end;justify-content:center;z-index:30}.modal.show{display:flex}.sheet{background:#fff;width:min(760px,100%);max-height:92vh;overflow:auto;border-radius:28px 28px 0 0;padding:20px}.sheetTop{display:flex;justify-content:space-between;align-items:center}.close{border:0;background:#fff;border:1px solid var(--line);width:42px;height:42px;border-radius:50%;font-size:22px}.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}.sheet .field{margin-top:10px}.photoDrop{border:2px dashed #f2b6d1;background:#fff7fb;border-radius:18px;padding:22px;text-align:center;margin:14px 0;color:#9b7c8c}.photoDrop img{max-width:150px;max-height:210px;border-radius:12px}
 .modalBtns{display:flex;gap:8px;margin-top:18px}.modalBtns button{flex:1}
@@ -142,12 +142,14 @@ let seriesNow="1弾";
 let activeTab="cards";
 let editIndex=null;
 let currentImage="";
+let coordOverrides={};
 normalizeCoordData();
 
 const $=id=>document.getElementById(id);
 function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function load(){
  try{
+   coordOverrides=JSON.parse(localStorage.getItem("aikatsuCoordOverridesV1")||"{}");
    let raw=localStorage.getItem(KEY);
    if(!raw){ for(const k of ["aikatsuEncoreCardbookV6","aikatsuEncoreCardbookV5","aikatsuEncoreCardbookV4","aikatsuEncoreCardbookV3","aikatsuEncoreCardbookV2"]){raw=localStorage.getItem(k);if(raw)break;} }
    if(raw){
@@ -159,6 +161,8 @@ function load(){
  }catch(e){console.warn(e)}
 }
 function save(){localStorage.setItem(KEY,JSON.stringify({cards,history:historyLog}))}
+function saveCoordOverrides(){localStorage.setItem("aikatsuCoordOverridesV1",JSON.stringify(coordOverrides))}
+function coordKey(g){return g.key||g.items[0]?.id||"coord"}
 function addHistory(text){historyLog.unshift({time:new Date().toLocaleString("ja-JP"),text});historyLog=historyLog.slice(0,100);save()}
 function init(){
  load(); $("fBrand").innerHTML='<option value="">すべて</option>'+brands.map(x=>`<option>${x}</option>`).join("");
@@ -198,14 +202,14 @@ function tryNextImage(img){
 }
 function cardHTML(c,i,mini=false){
  const owned=(+c.qty||0)>0;
- if(mini)return `<div class="mini"><div class="miniImg ${owned?'owned':''}">${c.image?`<img src="${c.image}">`:imageTag(c)}</div><small>${esc(c.id)}</small></div>`;
+ if(mini)return `<div class="mini"><div class="miniImg ${owned?'owned':''}">${c.image?`<img src="${c.image}" alt="">`:imageTag(c)}</div><small>${esc(c.id)}</small><button class="miniRemove" onclick="removeFromCoord(event,'${esc(c.id)}')">コーデから外す</button></div>`;
  return `<article class="card ${owned?'':'missing'}">
   <div class="cardImg" onclick="openEdit(${i})">${c.image?`<img src="${c.image}" alt="" onerror="this.style.display='none';this.parentElement.innerHTML='<div class=&quot;placeholder&quot;>✦</div>'">`:imageTag(c)}</div>
   ${owned?`<span class="badge">✓ ${c.qty}枚</span>`:''}
   <div class="cardMeta"><div class="code">${esc(c.id)} <span class="rarity">${esc(c.rarity||"")}</span></div>
   <div class="cardName">${esc(c.name||"カード名未登録")}</div>
   <div class="qty"><button onclick="changeQty(event,${i},-1)">−</button><strong>${c.qty||0}枚</strong><button onclick="changeQty(event,${i},1)">＋</button></div>
-  <div class="cardBtns"><button class="trade" onclick="changeTrade(event,${i},-1)">− 譲 ${c.trade||0} ＋</button><button class="want ${c.want?'on':''}" onclick="toggleWant(event,${i})">♡ 求</button></div>
+  <div class="cardBtns"><div class="tradeCtl"><button type="button" onclick="changeTrade(event,${i},-1)">−</button><strong>譲 ${c.trade||0}</strong><button type="button" onclick="changeTrade(event,${i},1)">＋</button></div><button class="want ${c.want?'on':''}" onclick="toggleWant(event,${i})">♡ 求</button></div>
   </div></article>`;
 }
 function render(){
@@ -276,23 +280,30 @@ function makeRarePlusCoords(){
   const legendary=groups.find(g=>g.items.some(c=>c.id==="E1-51"));
   const tiara=cards.find(c=>c.id==="EP-002");
   if(legendary&&tiara) legendary.items.push(tiara);
+  groups.forEach(g=>{if(!g.key)g.key=g.items[0]?.id||g.title});
   return groups;
 }
 function renderCoords(){
-  const rareGroups=makeRarePlusCoords();
-  const rareIds=new Set(rareGroups.flatMap(g=>g.items.filter(c=>c.series==="1弾").map(c=>c.id)));
-  const normalGroups={};
-  cards.filter(c=>c.series==="1弾"&&!isRarePlus(c)).forEach(c=>{const b=c.brand||"ブランド未設定";(normalGroups[b]??=[]).push(c)});
+  const rareGroups=makeRarePlusCoords().map(g=>({ ...g, key:coordKey(g) }));
   const rareHTML=rareGroups.map(g=>{
-    const own=g.items.filter(c=>(+c.qty||0)>0).length;
-    return `<div class="coordin"><div class="coordHead"><h3>コーデ ${esc(g.title)}</h3><span class="coordCount">${own} / ${g.items.length}</span></div><div class="coordCards">${g.items.map(c=>cardHTML(c,cards.indexOf(c),true)).join("")}</div><p class="notice">${own===g.items.length?'コーデ完成 ✦':'あと'+(g.items.length-own)+'枚で登録分がそろいます'}</p></div>`;
+    const key=g.key; const ov=coordOverrides[key]||{}; const excluded=new Set(ov.excluded||[]);
+    const items=g.items.filter(c=>!excluded.has(c.id));
+    const own=items.filter(c=>(+c.qty||0)>0).length;
+    const title=ov.name||g.title;
+    return `<div class="coordin"><div class="coordHead"><h3>コーデ ${esc(title)}</h3><span class="coordCount">${own} / ${items.length}</span></div><div style="display:flex;gap:7px;justify-content:flex-end;margin-top:8px"><button class="btn" onclick="renameCoord('${esc(key)}')">名前を変更</button><button class="btn" onclick="resetCoord('${esc(key)}')">初期状態に戻す</button></div><div class="coordCards">${items.map(c=>cardHTML(c,cards.indexOf(c),true)).join("")}</div><p class="notice">${own===items.length?'コーデ完成 ✦':'あと'+(items.length-own)+'枚で登録分がそろいます'}</p></div>`;
   }).join("");
+  const rareIds=new Set(rareGroups.flatMap(g=>g.items.map(c=>c.id)));
+  const normalGroups={}; cards.filter(c=>c.series==="1弾"&&!isRarePlus(c)&&!rareIds.has(c.id)).forEach(c=>{const b=c.brand||"ブランド未設定";(normalGroups[b]??=[]).push(c)});
   const normalHTML=Object.entries(normalGroups).map(([brand,arr])=>{
-    const own=arr.filter(c=>(+c.qty||0)>0).length;
-    return `<div class="coordin"><div class="coordHead"><h3>${esc(brand)}（ノーマル）</h3><span class="coordCount">${own} / ${arr.length}</span></div><div class="coordCards">${arr.slice(0,4).map(c=>cardHTML(c,cards.indexOf(c),true)).join("")}</div><p class="notice">${own===arr.length?'登録分がそろいました ✦':'あと'+(arr.length-own)+'枚で登録分がそろいます'}</p></div>`;
+    const key='normal:'+brand; const ov=coordOverrides[key]||{}; const excluded=new Set(ov.excluded||[]); const items=arr.filter(c=>!excluded.has(c.id));
+    const own=items.filter(c=>(+c.qty||0)>0).length; const title=ov.name||brand+'（ノーマル）';
+    return `<div class="coordin"><div class="coordHead"><h3>${esc(title)}</h3><span class="coordCount">${own} / ${items.length}</span></div><div style="display:flex;gap:7px;justify-content:flex-end;margin-top:8px"><button class="btn" onclick="renameCoord('${esc(key)}')">名前を変更</button><button class="btn" onclick="resetCoord('${esc(key)}')">初期状態に戻す</button></div><div class="coordCards">${items.slice(0,4).map(c=>cardHTML(c,cards.indexOf(c),true)).join("")}</div><p class="notice">${own===items.length?'登録分がそろいました ✦':'あと'+(items.length-own)+'枚で登録分がそろいます'}</p></div>`;
   }).join("");
   $("coords").innerHTML=rareHTML+normalHTML;
 }
+function renameCoord(key){const current=(coordOverrides[key]||{}).name||"";const name=prompt("コーデ名を入力してください",current);if(name===null)return;const ov=coordOverrides[key]||{};ov.name=name.trim();coordOverrides[key]=ov;saveCoordOverrides();renderCoords()}
+function removeFromCoord(e,id){e.stopPropagation();const groups=makeRarePlusCoords();const target=groups.find(g=>g.items.some(c=>c.id===id));let key=target?coordKey(target):null;if(!key){const c=cards.find(x=>x.id===id);if(c)key='normal:'+(c.brand||'ブランド未設定')}if(!key)return;const ov=coordOverrides[key]||{};ov.excluded=[...(ov.excluded||[])];if(!ov.excluded.includes(id))ov.excluded.push(id);coordOverrides[key]=ov;saveCoordOverrides();renderCoords()}
+function resetCoord(key){if(!confirm("このコーデの名前・除外設定を初期状態に戻しますか？"))return;delete coordOverrides[key];saveCoordOverrides();renderCoords()}
 function renderHistory(){$("history").innerHTML=historyLog.length?historyLog.map(x=>`<div class="historyItem"><span>${esc(x.text)}</span><small>${esc(x.time)}</small></div>`).join(""):'<div class="empty" style="background:transparent;border:0">まだ変更履歴はありません。</div>'}
 function openNew(){editIndex=null;currentImage="";$("modalTitle").textContent="カードを追加";["id","name","brand"].forEach(x=>$(x).value="");series.value=seriesNow;promo.value="no";type.value="";category.value="";rarity.value="ノーマル";qty.value=0;trade.value=0;preview.innerHTML='カード画像を登録できます<br><button class="btn" onclick="photoInput.click()">写真を選ぶ</button>';modal.classList.add("show")}
 function openEdit(i){const c=cards[i];editIndex=i;currentImage=c.image||"";$("modalTitle").textContent=c.id+" を編集";id.value=c.id;name.value=c.name||"";series.value=c.series||"1弾";promo.value=c.promo?"yes":"no";type.value=c.type||"";category.value=c.category||"";brand.value=c.brand||"";rarity.value=c.rarity||"ノーマル";qty.value=c.qty||0;trade.value=c.trade||0;preview.innerHTML=currentImage?`<img src="${currentImage}"><br><button class="btn" onclick="photoInput.click()">写真を変更</button>`:'カード画像を登録できます<br><button class="btn" onclick="photoInput.click()">写真を選ぶ</button>';modal.classList.add("show")}

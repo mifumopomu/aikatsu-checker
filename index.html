@@ -142,6 +142,7 @@ let seriesNow="1弾";
 let activeTab="cards";
 let editIndex=null;
 let currentImage="";
+normalizeCoordData();
 
 const $=id=>document.getElementById(id);
 function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
@@ -222,42 +223,75 @@ function switchTab(t){activeTab=t;document.querySelectorAll(".tab").forEach(b=>b
 function renderWant(){
  const arr=cards.filter(c=>c.want||(c.trade||0)>0);$("wantGrid").innerHTML=arr.length?arr.map(c=>cardHTML(c,cards.indexOf(c))).join(""):'<div class="empty">まだ「求」や「譲れる」を登録していません。</div>';
 }
+function normalizeCoordData(){
+  // 既存カードデータのうち、公式リスト上で判定できるカテゴリを補正。
+  const onePieces=new Set(["E1-09","E1-30","E1-31","E1-32","E1-37","E1-50","E1-51","E1-53","E1-55"]);
+  const bottoms=new Set(["E1-06"]);
+  const tops=new Set(["E1-33","E1-41"]);
+  cards.forEach(c=>{
+    if(onePieces.has(c.id)) c.category="ワンピース";
+    if(bottoms.has(c.id)) c.category="ボトムス";
+    if(tops.has(c.id)) c.category="トップス";
+    if(c.id==="EP-002"){c.category="アクセサリー";c.brand="スターライト";c.rarity="PR";}
+  });
+}
+function isRarePlus(c){
+  const r=String(c.rarity||"");
+  return r==="R"||r==="PR"||r==="ER"||r.includes("レア");
+}
 function coordCategory(c){
- const cat=String(c.category||"");
- if(cat==="トップス"||cat==="ボトムス"||cat==="シューズ"||cat==="アクセサリー") return cat;
- if(cat==="フルコーデ") return "ワンピース";
- const n=String(c.name||"");
- if(/ワンピ|ドレス/.test(n)) return "ワンピース";
- if(/ワンショルダー|キャミソール|ボレロ|トップス|ブラウス|ジャケット|シャツ|カーデ|ベスト|チューブトップ/.test(n)) return "トップス";
- if(/スカート|パンツ|ショートパンツ|ミニ/.test(n)) return "ボトムス";
- if(/シューズ|ブーツ|パンプス|サンダル|ミュール|ローファー|スニーカー/.test(n)) return "シューズ";
- if(/リボン|カチューシャ|アクセ|ティアラ|ジュエリー/.test(n)) return "アクセサリー";
- return "";
+  const x=String(c.category||"");
+  if(x==="フルコーデ"||x==="ワンピース") return "ワンピース";
+  return x;
 }
-function isCoordRarity(c){
- const r=String(c.rarity||"");
- return r==="レア"||r==="R"||r==="プレミアムレア"||r==="PR"||r==="アンコールレア"||r==="ER";
-}
-function buildCoords(){
- const src=cards.filter(c=>c.series==="1弾"&&isCoordRarity(c));
- const groups=[]; let current=null;
- src.forEach(c=>{
-   const cat=coordCategory(c);
-   const starts=cat==="トップス"||cat==="ワンピース";
-   if(starts){
-     current={title:c.name||c.id,cards:[c]}; groups.push(current);
-   }else if(current){
-     current.cards.push(c);
-   }
- });
- return groups;
+function makeRarePlusCoords(){
+  const list=cards.filter(c=>c.series==="1弾"&&isRarePlus(c));
+  const groups=[];
+  let i=0;
+  while(i<list.length){
+    const start=list[i], cat=coordCategory(start);
+    if(cat!=="トップス"&&cat!=="ワンピース"){i++;continue;}
+    const items=[start];
+    let j=i+1;
+    if(cat==="トップス"){
+      while(j<list.length){
+        const ncat=coordCategory(list[j]);
+        if(ncat==="トップス"||ncat==="ワンピース") break;
+        if(ncat==="ボトムス"||ncat==="シューズ"||ncat==="アクセサリー"){items.push(list[j]);j++;continue;}
+        j++;
+      }
+    }else{
+      while(j<list.length){
+        const ncat=coordCategory(list[j]);
+        if(ncat==="トップス"||ncat==="ワンピース") break;
+        if(ncat==="シューズ"||ncat==="アクセサリー"){items.push(list[j]);j++;continue;}
+        j++;
+      }
+    }
+    groups.push({title:`${items[0].id}〜${items[items.length-1].id}`,items});
+    i=Math.max(j,i+1);
+  }
+  // 例外：プロモーションカードのレジェンダリールージュティアラを
+  // E1-51〜E1-52のプレミアムレアコーデに追加する。
+  const legendary=groups.find(g=>g.items.some(c=>c.id==="E1-51"));
+  const tiara=cards.find(c=>c.id==="EP-002");
+  if(legendary&&tiara) legendary.items.push(tiara);
+  return groups;
 }
 function renderCoords(){
- const groups=buildCoords();
- $("coords").innerHTML=groups.length?groups.map((g,n)=>{
-   const own=g.cards.filter(c=>(+c.qty||0)>0).length;
-   return `<div class="coordin"><div class="coordHead"><h3>${esc(g.title)}</h3><span class="coordCount">${own} / ${g.cards.length}</span></div><div class="coordCards">${g.cards.map(c=>cardHTML(c,cards.indexOf(c),true)).join("")}</div><p class="notice">${own===g.cards.length?'コーデ完成 ✦':'あと'+(g.cards.length-own)+'枚でそろいます'}</p></div>`;
- }).join(""):'<div class="empty">レア以上のコーデカードがありません。</div>';
+  const rareGroups=makeRarePlusCoords();
+  const rareIds=new Set(rareGroups.flatMap(g=>g.items.filter(c=>c.series==="1弾").map(c=>c.id)));
+  const normalGroups={};
+  cards.filter(c=>c.series==="1弾"&&!isRarePlus(c)).forEach(c=>{const b=c.brand||"ブランド未設定";(normalGroups[b]??=[]).push(c)});
+  const rareHTML=rareGroups.map(g=>{
+    const own=g.items.filter(c=>(+c.qty||0)>0).length;
+    return `<div class="coordin"><div class="coordHead"><h3>コーデ ${esc(g.title)}</h3><span class="coordCount">${own} / ${g.items.length}</span></div><div class="coordCards">${g.items.map(c=>cardHTML(c,cards.indexOf(c),true)).join("")}</div><p class="notice">${own===g.items.length?'コーデ完成 ✦':'あと'+(g.items.length-own)+'枚で登録分がそろいます'}</p></div>`;
+  }).join("");
+  const normalHTML=Object.entries(normalGroups).map(([brand,arr])=>{
+    const own=arr.filter(c=>(+c.qty||0)>0).length;
+    return `<div class="coordin"><div class="coordHead"><h3>${esc(brand)}（ノーマル）</h3><span class="coordCount">${own} / ${arr.length}</span></div><div class="coordCards">${arr.slice(0,4).map(c=>cardHTML(c,cards.indexOf(c),true)).join("")}</div><p class="notice">${own===arr.length?'登録分がそろいました ✦':'あと'+(arr.length-own)+'枚で登録分がそろいます'}</p></div>`;
+  }).join("");
+  $("coords").innerHTML=rareHTML+normalHTML;
 }
 function renderHistory(){$("history").innerHTML=historyLog.length?historyLog.map(x=>`<div class="historyItem"><span>${esc(x.text)}</span><small>${esc(x.time)}</small></div>`).join(""):'<div class="empty" style="background:transparent;border:0">まだ変更履歴はありません。</div>'}
 function openNew(){editIndex=null;currentImage="";$("modalTitle").textContent="カードを追加";["id","name","brand"].forEach(x=>$(x).value="");series.value=seriesNow;promo.value="no";type.value="";category.value="";rarity.value="ノーマル";qty.value=0;trade.value=0;preview.innerHTML='カード画像を登録できます<br><button class="btn" onclick="photoInput.click()">写真を選ぶ</button>';modal.classList.add("show")}

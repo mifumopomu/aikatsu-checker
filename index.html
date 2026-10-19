@@ -325,10 +325,55 @@ function deleteCustomCoord(gid){if(!confirm("このコーデを削除します�
 async function exportCardListImage(kind){
  const arr=kind==="trade"?cards.filter(c=>(+c.trade||0)>0):cards.filter(c=>c.want);
  if(!arr.length){alert(kind==="trade"?"譲れるカードがありません。":"求めているカードがありません。");return}
- const cols=3,cellW=300,cellH=185,pad=28,headH=90,rows=Math.ceil(arr.length/cols);const canvas=document.createElement("canvas");canvas.width=pad*2+cols*cellW;canvas.height=pad*2+headH+rows*cellH;const ctx=canvas.getContext("2d");
- ctx.fillStyle="#fff4fa";ctx.fillRect(0,0,canvas.width,canvas.height);ctx.fillStyle="#b72e78";ctx.font="bold 34px sans-serif";ctx.fillText(kind==="trade"?"アイカツ！アンコール 譲れるカード":"アイカツ！アンコール 求めているカード",pad,pad+35);ctx.fillStyle="#6d5263";ctx.font="18px sans-serif";ctx.fillText(`${arr.length}種類 / ${new Date().toLocaleDateString("ja-JP")}`,pad,pad+65);
- arr.forEach((c,i)=>{const x=pad+(i%cols)*cellW,y=pad+headH+Math.floor(i/cols)*cellH;ctx.fillStyle="#fff";ctx.strokeStyle="#f0cddd";ctx.lineWidth=2;ctx.beginPath();ctx.roundRect(x,y,cellW-12,cellH-12,14);ctx.fill();ctx.stroke();ctx.fillStyle="#f8e8f1";ctx.beginPath();ctx.roundRect(x+12,y+12,78,cellH-36,9);ctx.fill();ctx.fillStyle="#b72e78";ctx.font="bold 20px sans-serif";ctx.fillText("✦",x+42,y+70);ctx.fillStyle="#493444";ctx.font="bold 17px sans-serif";wrapCanvasText(ctx,c.id,x+105,y+30,170,22,2);ctx.font="16px sans-serif";wrapCanvasText(ctx,c.name||"カード名未登録",x+105,y+58,170,22,3);ctx.fillStyle=kind==="trade"?"#278f83":"#c03c83";ctx.font="bold 18px sans-serif";ctx.fillText(kind==="trade"?`譲れる：${c.trade}枚`:"求",x+105,y+cellH-30)});
- window.currentExportBlob=await new Promise(resolve=>canvas.toBlob(resolve,"image/png"));window.currentExportName=kind==="trade"?"aikatsu-trade-list.png":"aikatsu-want-list.png";$("exportPreview").src=canvas.toDataURL("image/png");$("exportModal").classList.add("show");
+ const cols=3,cellW=260,cellH=350,pad=24,headH=92,rows=Math.ceil(arr.length/cols);
+ const canvas=document.createElement("canvas");canvas.width=pad*2+cols*cellW;canvas.height=pad*2+headH+rows*cellH;
+ const ctx=canvas.getContext("2d");
+ ctx.fillStyle="#fff4fa";ctx.fillRect(0,0,canvas.width,canvas.height);
+ ctx.fillStyle="#b72e78";ctx.font="bold 30px sans-serif";
+ ctx.fillText(kind==="trade"?"🎀 アイカツ！アンコール 譲れるカード":"🎀 アイカツ！アンコール 求めているカード",pad,pad+32);
+ ctx.fillStyle="#6d5263";ctx.font="17px sans-serif";
+ ctx.fillText(`${arr.length}種類 / ${new Date().toLocaleDateString("ja-JP")}`,pad,pad+62);
+ const loadCardImage=async(c)=>{
+   const urls=c.image?[c.image]:imageCandidates(c);
+   for(const url of urls){
+     if(!url)continue;
+     const img=new Image();
+     if(/^https?:/i.test(url))img.crossOrigin="anonymous";
+     img.referrerPolicy="no-referrer";
+     const ok=await new Promise(resolve=>{img.onload=()=>resolve(true);img.onerror=()=>resolve(false);img.src=url});
+     if(ok)return img;
+   }
+   return null;
+ };
+ const images=await Promise.all(arr.map(loadCardImage));
+ arr.forEach((c,i)=>{
+   const x=pad+(i%cols)*cellW,y=pad+headH+Math.floor(i/cols)*cellH;
+   ctx.fillStyle="#fff";ctx.strokeStyle="#f0cddd";ctx.lineWidth=2;
+   ctx.beginPath();ctx.roundRect(x+4,y+3,cellW-12,cellH-12,14);ctx.fill();ctx.stroke();
+   const img=images[i],boxX=x+28,boxY=y+15,boxW=cellW-68,boxH=245;
+   ctx.fillStyle="#f8e8f1";ctx.beginPath();ctx.roundRect(boxX,boxY,boxW,boxH,8);ctx.fill();
+   if(img){
+     let dw=boxW,dh=boxH;const ratio=img.naturalWidth/(img.naturalHeight||1);
+     if(ratio>1){dh=boxH;dw=dh*ratio;if(dw>boxW){dw=boxW;dh=dw/ratio}}
+     else {dw=boxW;dh=dw/ratio;if(dh>boxH){dh=boxH;dw=dh*ratio}}
+     ctx.save();ctx.beginPath();ctx.roundRect(boxX,boxY,boxW,boxH,8);ctx.clip();
+     ctx.drawImage(img,boxX+(boxW-dw)/2,boxY+(boxH-dh)/2,dw,dh);ctx.restore();
+   }else{
+     ctx.fillStyle="#c88ca9";ctx.font="bold 36px sans-serif";ctx.textAlign="center";ctx.fillText("✦",boxX+boxW/2,boxY+boxH/2+12);ctx.textAlign="left";
+   }
+   if(kind==="trade"){
+     const badgeX=boxX+boxW-5,badgeY=boxY+7,r=24;
+     ctx.fillStyle="#f04455";ctx.beginPath();ctx.arc(badgeX,badgeY,r,0,Math.PI*2);ctx.fill();
+     ctx.fillStyle="#fff";ctx.font="bold 24px sans-serif";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText(String(+c.trade||0),badgeX,badgeY+1);ctx.textAlign="left";ctx.textBaseline="alphabetic";
+   }
+   ctx.fillStyle="#493444";ctx.font="bold 15px sans-serif";wrapCanvasText(ctx,c.id,x+18,y+278,cellW-45,19,1);
+   ctx.font="14px sans-serif";wrapCanvasText(ctx,c.name||"カード名未登録",x+18,y+302,cellW-45,18,2);
+ });
+ try{
+   window.currentExportBlob=await new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error("画像を書き出せませんでした")),"image/png"));
+   window.currentExportName=kind==="trade"?"aikatsu-trade-list.png":"aikatsu-want-list.png";
+   $("exportPreview").src=canvas.toDataURL("image/png");$("exportModal").classList.add("show");
+ }catch(e){alert("カード画像を含む画像を作成できませんでした。公式画像の読み込み制限が原因の可能性があります。ページを再読み込みしてもう一度お試しください。")}
 }
 async function shareExportImage(){const blob=window.currentExportBlob;if(!blob){alert("画像を作成できませんでした。もう一度お試しください。");return}const file=new File([blob],window.currentExportName||"aikatsu-list.png",{type:"image/png"});try{if(navigator.canShare&&navigator.canShare({files:[file]})&&navigator.share){await navigator.share({files:[file],title:"アイカツ！アンコール カード一覧"});return}}catch(e){if(e&&e.name==="AbortError")return}const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=window.currentExportName||"aikatsu-list.png";a.click();setTimeout(()=>URL.revokeObjectURL(url),30000);alert("iPhoneではプレビュー画像を長押しして「写真に保存」を選んでください。共有機能が使える場合は共有メニューから保存できます。")}
 function closeExportImage(){$("exportModal").classList.remove("show")}

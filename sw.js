@@ -1,4 +1,4 @@
-const CACHE = 'aikatsu-encore-cardbook-v16';
+const CACHE = 'aikatsu-encore-cardbook-v17';
 const SHELL = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './icon-180.png'];
 
 self.addEventListener('install', event => {

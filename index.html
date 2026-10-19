@@ -198,15 +198,22 @@ function imageCandidates(c){
  const r=String(c.rarity||"");
  const first=r.includes("プレミアム")||r==="PR"?"PR":r.includes("アンコール")||r==="ER"?"ER":r.includes("レア")||r==="R"?"R":r.includes("ノーマル")||r==="N"?"N":null;
  const order=first?[first,...["PR","R","N","ER"].filter(x=>x!==first)]:["PR","R","N","ER"];
- return parallel?order.map(x=>base+`_${x}_p1.webp`):order.map(x=>base+`_${x}.webp`);
+ const urls=[];
+ for(const rarity of order){
+   const stems=parallel?[`${base}_${rarity}_p1`,`${base}_${rarity}_P1`,`${base}_${rarity}P`,`${base}_${rarity}_parallel`]:[`${base}_${rarity}`];
+   for(const stem of stems) for(const ext of ["webp","png","jpg","jpeg"]) urls.push(`${stem}.${ext}`);
+ }
+ return [...new Set(urls)];
 }
 function imageTag(c,cls=""){
  const urls=imageCandidates(c); if(!urls.length) return '<div class="placeholder">✦</div>';
  return `<img class="${cls}" src="${urls[0]}" data-img-candidates='${esc(JSON.stringify(urls))}' referrerpolicy="no-referrer" onerror="tryNextImage(this)" alt="">`;
 }
 function tryNextImage(img){
- let a=[];try{a=JSON.parse(img.dataset.imgCandidates||"[]")}catch(e){}; const current=img.src; const n=a.indexOf(current);
- if(n>=0 && n+1<a.length){img.src=a[n+1];return;} img.style.display="none"; if(img.parentElement)img.parentElement.innerHTML='<div class="placeholder">✦</div>';
+ let a=[];try{a=JSON.parse(img.dataset.imgCandidates||"[]")}catch(e){};
+ const current=img.getAttribute("src")||""; const n=a.indexOf(current);
+ if(n>=0 && n+1<a.length){img.src=a[n+1];return;}
+ img.style.display="none"; if(img.parentElement)img.parentElement.innerHTML='<div class="placeholder">✦</div>';
 }
 function cardHTML(c,i,mini=false){
  const owned=(+c.qty||0)>0;
@@ -299,7 +306,7 @@ function makeRarePlusCoords(){
     const hasParallel=g.items.some(c=>cards.some(p=>p.id===String(c.id)+"_p1"));
     if(hasParallel){
       const parallelItems=g.items.map(c=>cards.find(p=>p.id===String(c.id)+"_p1")||c);
-      withParallels.push({...g,title:g.title+"（パラレルレア）",key:"parallel:"+g.key,items:parallelItems});
+      withParallels.push({...g,title:g.title+"（パラレル）",key:"parallel-v19:"+g.key,items:parallelItems});
     }
   }
   return withParallels;
@@ -349,9 +356,10 @@ async function exportCardListImage(kind){
    for(const url of urls){
      if(!url)continue;
      const img=new Image();
+     // Canvasに安全に描画できるよう、外部画像はCORSモードで読み込む。
      if(/^https?:/i.test(url))img.crossOrigin="anonymous";
      img.referrerPolicy="no-referrer";
-     const ok=await new Promise(resolve=>{let settled=false;const done=v=>{if(!settled){settled=true;resolve(v)}};img.onload=()=>done(true);img.onerror=()=>done(false);setTimeout(()=>done(false),7000);img.src=url});
+     const ok=await new Promise(resolve=>{let settled=false;const done=v=>{if(!settled){settled=true;resolve(v)}};img.onload=()=>done(img.naturalWidth>0);img.onerror=()=>done(false);setTimeout(()=>done(false),2500);img.src=url});
      if(ok)return img;
    }
    return null;

@@ -129,7 +129,7 @@ main{max-width:1120px;margin:auto;padding:18px 16px 50px}
  <hr style="border:0;border-top:1px solid var(--line);margin:22px 0">
  <button class="btn" onclick="exportData()" style="width:100%">⇩ データを保存</button><br><br>
  <button class="btn" onclick="importData()" style="width:100%">⇧ ファイルから取り込む</button>
- <p class="notice">JSON/CSVのデータと、カード画像の複数選択に対応しています。</p><p class="notice">収録：1弾85種＋パラレル85種＋プロモーション50種＝220種。名称・レアリティを確認できないプロモカードは推測せず「公式名称未確認」としています。</p>
+ <p class="notice">JSON/CSVのデータと、カード画像の複数選択に対応しています。</p><p class="notice">収録：1弾85種＋公式パラレル12種＋プロモーション50種＝147種。名称・レアリティを確認できないプロモカードは推測せず「公式名称未確認」としています。</p>
 </div></div>
 
 <div class="modal" id="exportModal" onclick="if(event.target===this)closeExportImage()"><div class="sheet"><div class="sheetTop"><h2>一覧画像を保存</h2><button class="close" onclick="closeExportImage()">×</button></div><p class="notice">iPhoneでは「画像を共有・保存」から「画像を保存」を選ぶとカメラロールに保存できます。共有が表示されない場合は、画像を長押しして「写真に保存」を選んでください。</p><img id="exportPreview" alt="一覧画像プレビュー" style="display:block;width:100%;height:auto;border-radius:12px;border:1px solid var(--line)"><div class="modalBtns"><button class="btn" onclick="closeExportImage()">閉じる</button><button class="btn primary" onclick="shareExportImage()">画像を共有・保存</button></div></div></div>
@@ -259,7 +259,7 @@ function coordCategory(c){
   return x;
 }
 function makeRarePlusCoords(){
-  const list=cards.filter(c=>c.series==="1弾"&&isRarePlus(c));
+  const list=cards.filter(c=>c.series==="1弾"&&isRarePlus(c)&&!String(c.id||"").endsWith("_p1"));
   const groups=[];
   let i=0;
   while(i<list.length){
@@ -291,7 +291,18 @@ function makeRarePlusCoords(){
   const tiara=cards.find(c=>c.id==="EP-002");
   if(legendary&&tiara) legendary.items.push(tiara);
   groups.forEach(g=>{if(!g.key)g.key=g.items[0]?.id||g.title});
-  return groups;
+  // パラレルが存在するカードを含むコーデは、通常版とは別にパラレル版を作成する。
+  // パラレルが存在しないパーツは通常カードのまま組み合わせる。
+  const withParallels=[];
+  for(const g of groups){
+    withParallels.push(g);
+    const hasParallel=g.items.some(c=>cards.some(p=>p.id===String(c.id)+"_p1"));
+    if(hasParallel){
+      const parallelItems=g.items.map(c=>cards.find(p=>p.id===String(c.id)+"_p1")||c);
+      withParallels.push({...g,title:g.title+"（パラレルレア）",key:"parallel:"+g.key,items:parallelItems});
+    }
+  }
+  return withParallels;
 }
 function renderCoords(){
   const rareGroups=makeRarePlusCoords().map(g=>({ ...g, key:coordKey(g) }));
@@ -340,7 +351,7 @@ async function exportCardListImage(kind){
      const img=new Image();
      if(/^https?:/i.test(url))img.crossOrigin="anonymous";
      img.referrerPolicy="no-referrer";
-     const ok=await new Promise(resolve=>{img.onload=()=>resolve(true);img.onerror=()=>resolve(false);img.src=url});
+     const ok=await new Promise(resolve=>{let settled=false;const done=v=>{if(!settled){settled=true;resolve(v)}};img.onload=()=>done(true);img.onerror=()=>done(false);setTimeout(()=>done(false),7000);img.src=url});
      if(ok)return img;
    }
    return null;

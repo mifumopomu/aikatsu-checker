@@ -352,14 +352,23 @@ async function exportCardListImage(kind){
  ctx.fillStyle="#6d5263";ctx.font="17px sans-serif";
  ctx.fillText(`${arr.length}種類 / ${new Date().toLocaleDateString("ja-JP")}`,pad,pad+62);
  const loadCardImage=async(c)=>{
-   const urls=c.image?[c.image]:imageCandidates(c);
-   for(const url of urls){
+   const originals=c.image?[c.image]:imageCandidates(c);
+   // 公式サイトの画像は画面上で表示できても、CORS設定によりCanvasへ描画できないことがある。
+   // まず公式URLを直接試し、失敗した場合はCORS対応の画像中継を試す。
+   const urls=[];
+   for(const url of originals){
      if(!url)continue;
+     urls.push({url,cors:true});
+     if(/^https?:\/\//i.test(url)){
+       const clean=url.replace(/^https?:\/\//i,"");
+       urls.push({url:"https://images.weserv.nl/?url="+encodeURIComponent(clean),cors:true});
+     }
+   }
+   for(const item of urls){
      const img=new Image();
-     // Canvasに安全に描画できるよう、外部画像はCORSモードで読み込む。
-     if(/^https?:/i.test(url))img.crossOrigin="anonymous";
+     if(item.cors)img.crossOrigin="anonymous";
      img.referrerPolicy="no-referrer";
-     const ok=await new Promise(resolve=>{let settled=false;const done=v=>{if(!settled){settled=true;resolve(v)}};img.onload=()=>done(img.naturalWidth>0);img.onerror=()=>done(false);setTimeout(()=>done(false),2500);img.src=url});
+     const ok=await new Promise(resolve=>{let settled=false;const done=v=>{if(!settled){settled=true;resolve(v)}};img.onload=()=>done(img.naturalWidth>0);img.onerror=()=>done(false);setTimeout(()=>done(false),4500);img.src=item.url});
      if(ok)return img;
    }
    return null;
@@ -423,7 +432,7 @@ init();
 </script>
 <script>
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
+  window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js?rev=20').catch(() => {}));
 }
 </script>
 </body></html>
